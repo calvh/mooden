@@ -1,0 +1,84 @@
+<div class="chart-container">
+    <canvas id="moodChart"></canvas>
+</div>
+
+<button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modal-add-entry">Add entry</button>
+
+<div id="modal-add-entry" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><strong>Add a New Entry</strong></h5>
+                <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+
+                <form id="form-add-entry">
+                    <div class="form-group row">
+                        <label for="input-date" class="col-sm-3 col-form-label">Entry Date</label>
+                        <div class="col-sm-9">
+                            <input type="date" class="form-control" id="input-date" required>
+                        </div>
+
+                    </div>
+                    <div class="form-group row">
+                        <label for="input-mood" class="col-sm-3 col-form-label">Mood (1-9)</label>
+                        <div class="col-sm-9">
+                            <input type="number" min="1" max="9" class="form-control" id="input-mood"
+                                placeholder="1=very sad, 9=very happy" value=5 required>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" id="btn-new-entry">Submit</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button class="btn btn-secondary btn-lg" data-bs-toggle="modal" data-bs-target="#modal-add-sample">Add sample
+    data</button>
+
+<div id="modal-add-sample" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><strong>Add Sample Data</strong></h5>
+                <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+
+                <form id="form-add-sample-data">
+                    <div class="form-group row">
+                        <label for="input-sample-start-date" class="col-sm-3 col-form-label">Start Date (must be before End Date)</label>
+                        <div class="col-sm-9">
+                            <input type="date" class="form-control" id="input-sample-start-date" required>
+                        </div>
+
+                    </div>
+                    <div class="form-group row">
+                        <label for="input-sample-end-date" class="col-sm-3 col-form-label">End Date</label>
+                        <div class="col-sm-9">
+                            <input type="date" class="form-control" id="input-sample-end-date" required>
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" id="btn-add-sample-data">Submit</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button id="btn-clear-data" class="btn btn-danger btn-lg">Clear data</button>
+<a class="btn btn-primary btn-lg" href="/" role="button">Home</a>
+
+<script type="text/javascript" src="/js/dashboard.js"></script>

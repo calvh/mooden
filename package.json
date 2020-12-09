@@ -1,0 +1,29 @@
+{
+  "name": "mooden",
+  "version": "1.0.0",
+  "description": "A simple tool to track your mood",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/calvh/mooden.git"
+  },
+  "author": "Calvin Ho",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/calvh/mooden/issues"
+  },
+  "homepage": "https://github.com/calvh/mooden#readme",
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "express": "^4.17.1",
+    "express-handlebars": "^5.2.0",
+    "http-errors": "~1.6.3",
+    "mongoose": "^5.11.5",
+    "morgan": "~1.9.1"
+  }
+}
