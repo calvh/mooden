@@ -121,7 +121,7 @@ module.exports = (router, passport, jwt, db) => {
 
   // ------------------------------  LOGOUT  ------------------------------
 
-  server.post("/logout", (_req, res) => {
+  router.post("/logout", (_req, res) => {
     // clear cookie on client
     res.clearCookie("refreshToken", { path: "/refresh_token" });
 
