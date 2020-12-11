@@ -121,8 +121,7 @@ module.exports = (
         jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
         secretOrKey: process.env.ACCESS_TOKEN_SECRET,
       },
-
-      jwtCallback(jwt_payload, done)
+      jwtCallback
     )
   );
 
@@ -137,7 +136,7 @@ module.exports = (
           req && req.cookies ? req.cookies["jwt"] : null,
         secretOrKey: process.env.REFRESH_TOKEN_SECRET,
       },
-      jwtCallback(jwt_payload, done)
+      jwtCallback
     )
   );
 };
