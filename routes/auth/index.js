@@ -119,6 +119,26 @@ module.exports = (router, passport, jwt, db) => {
     })(req, res, next);
   });
 
+  // ------------------------------  LOGOUT  ------------------------------
+
+  server.post("/logout", (_req, res) => {
+    // clear cookie on client
+    res.clearCookie("refreshToken", { path: "/refresh_token" });
+
+    // clear refresh token in database
+    db.User.findByIdAndUpdate(user._id, { $unset: { refreshToken: "" } })
+      .then((dbUser) => {
+        // clear successful
+        res.status(200).send({
+          message: "Successfully logged out",
+        });
+      })
+      .catch((err) => {
+        // db error
+        res.status(500).send(err);
+      });
+  });
+
   // -------------  ISSUE NEW ACCESS TOKEN WITH REFRESH TOKEN  ------------
   router.post("/refresh_token", (req, res) => {
     passport.authenticate("jwtRefresh", (err, user, info) => {
