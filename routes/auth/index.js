@@ -151,4 +151,6 @@ module.exports = (router, passport, jwt, db) => {
       createAndSendTokens(user, res, req);
     });
   });
+
+  return router;
 };

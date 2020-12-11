@@ -53,13 +53,7 @@ app.use(passport.initialize());
 
 // ----------------------------  MOUNT ROUTER  ----------------------------
 // ------ define sub-routers ------
-const apiRouter = require("./routes/api")(
-  express.Router(),
-  db,
-  passport,
-  jwt,
-  db
-);
+const apiRouter = require("./routes/api")(express.Router(), passport, jwt, db);
 
 const authRouter = require("./routes/auth")(
   express.Router(),
