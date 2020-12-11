@@ -8,6 +8,7 @@ module.exports = (db) => {
         type: Schema.Types.ObjectId,
         ref: "Datapoint",
       },
+      refreshToken: { type: String },
     },
     { timestamps: true }
   );

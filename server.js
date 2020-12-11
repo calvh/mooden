@@ -20,8 +20,7 @@ app.use(cookieParser());
 // -------------------------------  MONGODB  ------------------------------
 
 const mongoose = require("mongoose");
-const dbName = "moodle";
-const MONGODB_URI = process.env.MONGODB_URI || `mongodb://localhost/${dbName}`;
+const MONGODB_URI = process.env.MONGODB_URI;
 const db = require("./models")(mongoose);
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
@@ -30,12 +29,50 @@ mongoose.connect(MONGODB_URI, {
   useUnifiedTopology: true,
 });
 
-const controller = {}; // todo
+// ------------------------------  PASSPORT  ------------------------------
+const passport = require("passport");
+const localStrategy = require("passport-local").Strategy;
+const jwt = require("jsonwebtoken");
+const passportJWT = require("passport-jwt");
+const bcrypt = require("bcrypt");
+const validate = require("validate.js");
+const constraints = require("./config/constraints");
+
+require("./config/passport")(
+  db,
+  bcrypt,
+  passport,
+  localStrategy,
+  passportJWT,
+  validate,
+  constraints
+);
+
+app.use(passport.initialize());
 
 // ----------------------------  MOUNT ROUTER  ----------------------------
-const router = express.Router();
-require("./routes")(router);
-app.use("/", router);
+// ------ define sub-routers ------
+const apiRouter = require("./routes/api")(
+  express.Router(),
+  db,
+  passport,
+  jwt,
+  db
+);
+
+const authRouter = require("./routes/auth")(
+  express.Router(),
+  passport,
+  jwt,
+  db
+);
+
+const renderRouter = require("./routes/render")(express.Router());
+
+// ------- mount sub-routers ------
+app.use("/api", apiRouter);
+app.use("/auth", authRouter);
+app.use("/", renderRouter);
 
 // ---------------------------  ERROR HANDLING  ---------------------------
 const createError = require("http-errors");
@@ -56,7 +93,7 @@ app.use(function (err, req, res, next) {
 });
 
 // ----------------------------  START SERVER  ----------------------------
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`API Server started on port ${PORT}!`);
 });
