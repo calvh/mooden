@@ -6,9 +6,9 @@ module.exports = (db) => {
         type: Number,
         required: true,
         min: 1,
-        max: 5,
+        max: 9,
       },
-      time: {
+      date: {
         type: Date,
         required: true,
         default: Date.now,
