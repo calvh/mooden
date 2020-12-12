@@ -1,46 +1,9 @@
-module.exports = (router, passport, jwt, db) => {
-  const createAndSendTokens = (user, res, req) => {
-    // create access token
-    const accessToken = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
-    );
-
-    // create refresh token
-    const refreshToken = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "7D" }
-    );
-
-    // store new refresh token in database
-    db.User.findByIdAndUpdate(user._id, refreshToken, { new: true })
-      .then((dbUser) => {
-        // storage successful
-        // send access token in response and refresh token as an HTTP cookie
-        res
-          .status(200)
-          .send({
-            accessToken,
-            email: req.body.email,
-          })
-          .cookie("refreshToken", token, {
-            httpOnly: true,
-            path: "/refresh_token",
-          });
-      })
-      .catch((err) => {
-        // db error; unable to store refresh token in database
-        res.status(500).send(err);
-      });
-  };
-
+module.exports = (router, passport, db, jwt, tokens) => {
   // ------------------------------  REGISTER  ------------------------------
 
   router.post("/register", (req, res, next) => {
     // pass request to passport: register strategy
-    passport.authenticate("register", (err, user, info) => {
+    passport.authenticate("register", async (err, user, info) => {
       // use custom callback
 
       if (err) {
@@ -66,22 +29,22 @@ module.exports = (router, passport, jwt, db) => {
         return res.status(400).send(info);
       }
 
-      // registration was successful, automatically login user
-      req.logIn(user, { session: false }, (err) => {
-        if (err) {
-          // 500 Internal Server Error: The server has encountered a situation it doesn't know how to handle
-          return res.status(500).send(err);
-        }
-
-        createAndSendTokens(user, res, req);
-      });
+      // registration was successful, send a refresh token in a cookie and redirect to dashboard
+      const refreshToken = tokens.createRefreshToken(user, jwt);
+      try {
+        await tokens.storeRefreshToken(db, user, refreshToken);
+        tokens.sendRefreshToken(res, refreshToken);
+        return res.redirect("/dashboard");
+      } catch (err) {
+        return res.status(500).send(err);
+      }
     })(req, res, next);
   });
 
   // --------------------------------  LOGIN  -------------------------------
   router.post("/login", (req, res, next) => {
     // pass request to passport: login strategy
-    passport.authenticate("login", (err, user, info) => {
+    passport.authenticate("login", async (err, user, info) => {
       // use custom callback
 
       if (err) {
@@ -107,15 +70,15 @@ module.exports = (router, passport, jwt, db) => {
         return res.status(401).send(info);
       }
 
-      // everything checks out, proceed to login user
-      req.logIn(user, { session: false }, (err) => {
-        if (err) {
-          // 500 Internal Server Error: The server has encountered a situation it doesn't know how to handle
-          return res.status(500).send(err);
-        }
-
-        createAndSendTokens(user, res, req);
-      });
+      // login was successful, send a refresh token in a cookie and redirect to dashboard
+      const refreshToken = tokens.createRefreshToken(user, jwt);
+      try {
+        await tokens.storeRefreshToken(db, user, refreshToken);
+        tokens.sendRefreshToken(res, refreshToken);
+        return res.redirect("/dashboard");
+      } catch (err) {
+        return res.status(500).send(err);
+      }
     })(req, res, next);
   });
 
@@ -129,9 +92,7 @@ module.exports = (router, passport, jwt, db) => {
     db.User.findByIdAndUpdate(user._id, { $unset: { refreshToken: "" } })
       .then((dbUser) => {
         // clear successful
-        res.status(200).send({
-          message: "Successfully logged out",
-        });
+        res.redirect("/");
       })
       .catch((err) => {
         // db error
@@ -139,16 +100,34 @@ module.exports = (router, passport, jwt, db) => {
       });
   });
 
+  // ---------------------------  ACCESS TOKEN  ---------------------------
+  // todo this is an API route
+  router.post("/dashboard", (req, res) => {
+    passport.authenticate("jwtAccess", (err, user, info) => {
+      if (err) {
+        // invalid refresh token
+        return res.redirect("/login");
+      }
+    });
+  });
+
   // -------------  ISSUE NEW ACCESS TOKEN WITH REFRESH TOKEN  ------------
   router.post("/refresh_token", (req, res) => {
     passport.authenticate("jwtRefresh", (err, user, info) => {
       if (err) {
-        // invalid refresh token
-        // todo redirect to homepage
-        return res.send({ accessToken: "" });
+        // 500 Internal Server Error: The server has encountered a situation it doesn't know how to handle
+        return res.status(500).send(err);
       }
 
-      createAndSendTokens(user, res, req);
+      if (!user) {
+        // invalid refresh token
+        return res.redirect("/login");
+      }
+
+      // todo
+      // refresh token valid, send new refresh token and access token
+      // tokens.createAndSendRefreshToken(user, res, db, jwt);
+      // tokens.createAndSendAccessToken(user, res);
     });
   });
 

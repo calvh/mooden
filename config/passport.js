@@ -29,14 +29,13 @@ module.exports = (
         User.findOne({ email })
           .then(async (user) => {
             // use async bcrypt function
-
             if (user) {
               // email already exists
               return done(null, false, { authError: "email" });
             }
 
             // no duplicate, register new user
-            const saltRounds = process.env.SALT_ROUNDS;
+            const saltRounds = parseInt(process.env.SALT_ROUNDS);
             const hashedPassword = await bcrypt.hash(password, saltRounds);
 
             User.create({
@@ -98,18 +97,23 @@ module.exports = (
       .then((user) => {
         if (!user) {
           //  user not found in db
-          const message = `User ID: ${jwt_payload.id} not found in database`;
-          return done(null, false, { message });
+          return done(null, false, {
+            message: `User ID: ${jwt_payload.id} not found in database`,
+          });
         }
         if (jwt_payload.email !== user.email) {
           // user found but email does not match
-          const message = `Token email (${jwt_payload.email}) does not match database email (${user.email})`;
-          return done(null, false, { message });
+          return done(null, false, {
+            message: `Token email (${jwt_payload.email}) does not match database email (${user.email})`,
+          });
         }
         // user found in db
         return done(null, user);
       })
-      .catch((err) => done(err));
+      .catch((err) => {
+        // db error
+        done(err);
+      });
   };
 
   // --------- access token ---------
@@ -131,9 +135,10 @@ module.exports = (
     "jwtRefresh",
     new passportJWT.Strategy(
       {
-        // look for jwt in cookies
+        // look for jwt in cookies, key is "refreshToken"
         jwtFromRequest: (req) =>
-          req && req.cookies ? req.cookies["jwt"] : null,
+          req && req.cookies ? req.cookies["refreshToken"] : null,
+        // jwtFromRequest: cookieExtractor,
         secretOrKey: process.env.REFRESH_TOKEN_SECRET,
       },
       jwtCallback
