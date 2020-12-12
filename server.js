@@ -18,17 +18,36 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// --------------------------------  CORS  --------------------------------
+// necessary for development using localhost
+// allow cookies to be set by browser
+// frontend API calls need to set "credentials: include"
+const cors = require("cors");
+if (process.env.NODE_ENV !== "production") {
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+    })
+  );
+}
+
 // -------------------------------  MONGODB  ------------------------------
 
 const mongoose = require("mongoose");
 const MONGODB_URI = process.env.MONGODB_URI;
 const db = require("./models")(mongoose);
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useFindAndModify: false,
-  useCreateIndex: true,
-  useUnifiedTopology: true,
-});
+
+try {
+  mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useFindAndModify: false,
+    useCreateIndex: true,
+    useUnifiedTopology: true,
+  });
+} catch (error) {
+  throw error;
+}
 
 // ------------------------------  PASSPORT  ------------------------------
 const passport = require("passport");
@@ -53,16 +72,25 @@ app.use(passport.initialize());
 
 // ----------------------------  MOUNT ROUTER  ----------------------------
 // ------ define sub-routers ------
+
+const tokens = require("./utils/tokens");
 const apiRouter = require("./routes/api")(express.Router(), passport, jwt, db);
 
 const authRouter = require("./routes/auth")(
   express.Router(),
   passport,
+  db,
   jwt,
-  db
+  tokens
 );
 
-const renderRouter = require("./routes/render")(express.Router());
+const renderRouter = require("./routes/render")(
+  express.Router(),
+  passport,
+  db,
+  jwt,
+  tokens
+);
 
 // ------- mount sub-routers ------
 app.use("/api", apiRouter);

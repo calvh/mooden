@@ -10,9 +10,9 @@ module.exports = {
         maximum: 20,
       },
       format: {
-        pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,20}$",
+        pattern: "^(?=.*[0-9])(?=.*[a-zA-Z])([a-zA-Z0-9]+).{7,20}$",
         message:
-          "must contain at least one each of the following: uppercase letters, lowercase letters, numbers, and special characters",
+          "must be 8-20 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji",
       },
     },
   };

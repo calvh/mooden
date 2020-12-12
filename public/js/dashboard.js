@@ -87,13 +87,15 @@ $(function () {
       return;
     }
 
-    while (!startDate.isSame(endDate)) {
+    let i = 0;
+    while (i < 30 || !startDate.isSame(endDate)) {
       addData(moodChart, {
         x: startDate.clone(),
         y: Math.floor(Math.random() * 9 + 1),
       });
 
       startDate.add(1, "d");
+      i++;
     }
   });
 

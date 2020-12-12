@@ -1,6 +1,5 @@
-
 <p class="h3">Login to Mooden</p>
-<form>
+<form id="form-login">
   <div class="mb-3">
     <label for="input-email" class="form-label">Email address</label>
     <input type="email" class="form-control" id="input-email" aria-describedby="emailHelp">
@@ -12,6 +11,11 @@
   <div class="mb-3 form-check">
     <input type="checkbox" class="form-check-input" id="input-remember-me">
     <label class="form-check-label" for="input-remember-me">Remember Me</label>
+    {{!-- todo implement later --}}
   </div>
   <button type="submit" class="btn btn-primary">Submit</button>
+  <a class="btn btn-primary" href="/register" role="button">Register</a>
+  <a class="btn btn-primary" href="/" role="button">Home</a>
 </form>
+
+<script type="text/javascript" src="/js/login.js"></script>
