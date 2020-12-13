@@ -9,6 +9,8 @@ module.exports = (
 ) => {
   const User = db.User;
 
+  // todo differentiate between different error messages (e.g. authError, dbError, validateError, jwtError)
+
   passport.use(
     "register",
     new localStrategy(
@@ -90,32 +92,6 @@ module.exports = (
 
   // ---------------------------  JWT STRATEGIES  ---------------------------
 
-  const jwtCallback = (jwt_payload, done) => {
-    // jsonwebtoken verify callback
-    // token is valid, check if user exists in db
-    User.findById(jwt_payload.id)
-      .then((user) => {
-        if (!user) {
-          //  user not found in db
-          return done(null, false, {
-            message: `User ID: ${jwt_payload.id} not found in database`,
-          });
-        }
-        if (jwt_payload.email !== user.email) {
-          // user found but email does not match
-          return done(null, false, {
-            message: `Token email (${jwt_payload.email}) does not match database email (${user.email})`,
-          });
-        }
-        // user found in db
-        return done(null, user);
-      })
-      .catch((err) => {
-        // db error
-        done(err);
-      });
-  };
-
   // --------- access token ---------
   passport.use(
     "jwtAccess",
@@ -125,7 +101,27 @@ module.exports = (
         jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
         secretOrKey: process.env.ACCESS_TOKEN_SECRET,
       },
-      jwtCallback
+      (jwt_payload, done) => {
+        // jsonwebtoken verify callback
+        // token is valid, check if user exists in db
+        User.findById(jwt_payload.id)
+          .then((user) => {
+            if (!user) {
+              //  user not found in db
+              return done(null, false, { authError: "id" });
+            }
+            if (jwt_payload.email !== user.email) {
+              // user found but email does not match
+              return done(null, false, { authError: "email" });
+            }
+            // user found in db
+            return done(null, user);
+          })
+          .catch((err) => {
+            // db error
+            done(err);
+          });
+      }
     )
   );
 
@@ -138,10 +134,38 @@ module.exports = (
         // look for jwt in cookies, key is "refreshToken"
         jwtFromRequest: (req) =>
           req && req.cookies ? req.cookies["refreshToken"] : null,
-        // jwtFromRequest: cookieExtractor,
+
         secretOrKey: process.env.REFRESH_TOKEN_SECRET,
+
+        // needed to check token with database
+        passReqToCallback: true,
       },
-      jwtCallback
+      (req, jwt_payload, done) => {
+        // jsonwebtoken verify callback
+        // token is valid, check if user exists in db
+        User.findById(jwt_payload.id)
+          .then((user) => {
+            if (!user) {
+              //  user not found in db
+              return done(null, false, { authError: "id" });
+            }
+            if (jwt_payload.email !== user.email) {
+              // user found but email does not match
+              return done(null, false, { authError: "email" });
+            }
+
+            if (req.cookies["refreshToken"] !== user.refreshToken) {
+              // user found and email matches but refreshToken does not match
+              return done(null, false, { authError: "token" });
+            }
+            // user found in db
+            return done(null, user);
+          })
+          .catch((err) => {
+            // db error
+            done(err);
+          });
+      }
     )
   );
 };

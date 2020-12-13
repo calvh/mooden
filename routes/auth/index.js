@@ -84,9 +84,9 @@ module.exports = (router, passport, db, jwt, tokens) => {
 
   // ------------------------------  LOGOUT  ------------------------------
 
-  router.post("/logout", (_req, res) => {
+  router.post("/logout", (req, res) => {
     // clear cookie on client
-    res.clearCookie("refreshToken", { path: "/refresh_token" });
+    res.clearCookie("refreshToken");
 
     // clear refresh token in database
     db.User.findByIdAndUpdate(user._id, { $unset: { refreshToken: "" } })
@@ -111,24 +111,35 @@ module.exports = (router, passport, db, jwt, tokens) => {
     });
   });
 
+  router.post("/test", (req, res) => {
+    res.redirect("/login");
+  });
+
   // -------------  ISSUE NEW ACCESS TOKEN WITH REFRESH TOKEN  ------------
-  router.post("/refresh_token", (req, res) => {
-    passport.authenticate("jwtRefresh", (err, user, info) => {
+  router.post("/refresh-token", (req, res, next) => {
+    passport.authenticate("jwtRefresh", async (err, user, info) => {
       if (err) {
         // 500 Internal Server Error: The server has encountered a situation it doesn't know how to handle
         return res.status(500).send(err);
       }
 
       if (!user) {
-        // invalid refresh token
+        // invalid refresh token or user not found
         return res.redirect("/login");
       }
 
-      // todo
-      // refresh token valid, send new refresh token and access token
-      // tokens.createAndSendRefreshToken(user, res, db, jwt);
-      // tokens.createAndSendAccessToken(user, res);
-    });
+      // refresh token valid, issue new refresh and access tokens
+      const refreshToken = tokens.createRefreshToken(user, jwt);
+      try {
+        await tokens.storeRefreshToken(db, user, refreshToken);
+        tokens.sendRefreshToken(res, refreshToken);
+        
+        // send access token and expiry date
+        res.status(200).send(tokens.createAccessToken(user, jwt));
+      } catch (err) {
+        return res.status(500).send(err);
+      }
+    })(req, res, next);
   });
 
   return router;

@@ -40,8 +40,7 @@ const sendRefreshToken = (res, refreshToken) => {
     // TODO cookies can be sent by HTTPS only, needs to be tested
     // secure: true,
 
-    // set path to make this a global cookie to be sent by all paths; so that the server will receive the cookie, verify the refresh token and redirect to the desired page from any page)
-    path: "/",
+    // default path: "/" will make this a global cookie to be sent by all paths; so that the server will receive the cookie, verify the refresh token and redirect to the desired page from any page)
   });
 };
 
@@ -67,15 +66,9 @@ const createAccessToken = (user, jwt) => {
   };
 };
 
-const sendAccessToken = (res, accessTokenObject) => {
-  // send access token and expiry date
-  res.status(200).send(accessTokenObject);
-};
-
 module.exports = {
   createRefreshToken,
   storeRefreshToken,
   sendRefreshToken,
   createAccessToken,
-  sendAccessToken,
 };
