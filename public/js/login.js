@@ -1,7 +1,7 @@
 "use strict";
 
 $(function () {
-  $(document).on("submit", "#form-login", function (e) {
+  $(document).on("submit", "#form-login", (e) => {
     e.preventDefault();
 
     const email = $("#input-email").val();

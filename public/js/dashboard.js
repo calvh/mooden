@@ -1,8 +1,34 @@
 "use strict";
 
-$(function () {
+// page loads
+// check refresh token
+// no token exists -> redirect to login
+// token exists -> send request to server to get jwt (and new refresh token) and store in memory
+
+$(async function () {
+  // ---------------------------  ACCESS TOKEN  ---------------------------
+
+  const accessTokenClosure = () => {
+    let accessToken, accessTokenExpiry;
+
+    const getToken = async () => {
+      ({ accessToken, accessTokenExpiry } = await checkRefreshToken());
+    };
+
+    return {
+      getNew: async () => {
+        await getToken();
+      },
+
+      // use this function to access the access token from memory
+      value: () => accessToken,
+
+      expiry: () => accessTokenExpiry,
+    };
+  };
 
   // ---------------------------  REFRESH TOKEN  --------------------------
+
   const checkRefreshToken = async () => {
     try {
       const opts = {
@@ -18,7 +44,6 @@ $(function () {
 
       if (response.status === 200) {
         // login success
-        // save access token to memory
         return await response.json();
       } else if (response.status === 302) {
         // auth failed (user not found/invalid token)
@@ -33,13 +58,12 @@ $(function () {
     }
   };
 
-  checkRefreshToken();
+  // -------------------------------  INIT  -------------------------------
 
-  // --------------------  COUNTDOWN TO SILENT REFRESH  -------------------
-  
-  // todo set logout monitoring function for all
+  const jwt = accessTokenClosure();
+  await jwt.getNew(); // get token
 
-  // todo logout function
+  // ------------------------------  BUTTONS  -----------------------------
 
   $(document).on("click", "#btn-new-entry", (e) => {
     e.preventDefault();
@@ -110,39 +134,10 @@ $(function () {
     moodChart.update();
   });
 
-  $(document).on("click", "#btn-refresh-token", (e) => {
+  $(document).on("click", "#btn-refresh-token", async (e) => {
     e.preventDefault();
-    const checkRefreshToken = async () => {
-      try {
-        const opts = {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
-          },
-        };
-
-        const response = await fetch("/auth/refresh-token", opts);
-
-        if (response.status === 200) {
-          // login success
-          // save access token to memory
-          return await response.json();
-        } else if (response.status === 302) {
-          // auth failed (user not found/invalid token)
-          // redirect to login
-          window.location.replace(response.url);
-        } else {
-          // other errors
-          throw new Error(response.statusText);
-        }
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    checkRefreshToken();
+    const result = await checkRefreshToken();
+    console.log(result);
   });
 
   // -------------------------------  CHART  ------------------------------

@@ -21,7 +21,7 @@ $(function () {
         const response = await fetch("/auth/register", opts);
         if (response.status === 200) {
           // register success - redirect to dashboard
-          window.location.replace(response.url)
+          window.location.replace(response.url);
         } else {
           // register failed
           console.log("register failed");
@@ -33,6 +33,5 @@ $(function () {
     };
 
     register();
-
   });
 });
