@@ -2,7 +2,7 @@ module.exports = (router, passport, db, jwt, tokens) => {
   // for all routes perform a check on refresh token and redirect to dashboard if valid
   router.get("/*", (req, res, next) => {
     if (req.originalUrl.startsWith("/dashboard")) {
-      // skip any /dashboard routes
+      // skip this step for any /dashboard routes
       return next();
     }
 

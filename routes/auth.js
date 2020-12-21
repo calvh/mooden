@@ -131,6 +131,7 @@ module.exports = (router, passport, db, jwt, tokens) => {
       // refresh token valid, issue new refresh and access tokens
       const refreshToken = tokens.createRefreshToken(user, jwt);
       try {
+        // store refresh token in database
         await tokens.storeRefreshToken(db, user, refreshToken);
         tokens.sendRefreshToken(res, refreshToken);
         
