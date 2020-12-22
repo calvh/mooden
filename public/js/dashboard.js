@@ -58,9 +58,41 @@ $(async function () {
     }
   };
 
+  // ------------------------------  LOGOUT  ------------------------------
+
+  const logout = async () => {
+    // remove in-memory token
+    jwt = null;
+
+    try {
+      const opts = {
+        method: "POST",
+        credentials: "include",
+      };
+
+      const response = await fetch("/auth/logout", opts);
+
+      // to support logging out from all windows
+      window.localStorage.setItem("logout", Date.now());
+
+      if (response.status === 200) {
+        // logout success - redirect to dashboard
+        window.location.replace(response.url);
+      } else {
+        // something went wrong with logout
+        // todo remove cookie manually?
+        window.location.replace(response.url);
+        throw new Error(response.statusText);
+      }
+    } catch (err) {
+      // todo remove cookie manually?
+      console.log(err);
+    }
+  };
+
   // -------------------------------  INIT  -------------------------------
 
-  const jwt = accessTokenClosure();
+  let jwt = accessTokenClosure();
   await jwt.getNew(); // get token
 
   // ------------------------------  BUTTONS  -----------------------------
@@ -138,6 +170,11 @@ $(async function () {
     e.preventDefault();
     const result = await checkRefreshToken();
     console.log(result);
+  });
+
+  $(document).on("click", "#btn-logout", (e) => {
+    e.preventDefault();
+    logout();
   });
 
   // -------------------------------  CHART  ------------------------------

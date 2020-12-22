@@ -158,7 +158,7 @@ module.exports = (
               // user found and email matches but refreshToken does not match
               return done(null, false, { authError: "token" });
             }
-            // user found in db
+            // user found in db, email, refresh token both match
             return done(null, user);
           })
           .catch((err) => {
