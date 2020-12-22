@@ -88,16 +88,31 @@ module.exports = (router, passport, db, jwt, tokens) => {
     // clear cookie on client
     res.clearCookie("refreshToken");
 
-    // clear refresh token in database
-    db.User.findByIdAndUpdate(user._id, { $unset: { refreshToken: "" } })
-      .then((dbUser) => {
-        // clear successful
-        res.redirect("/");
-      })
-      .catch((err) => {
-        // db error
-        res.status(500).send(err);
-      });
+    const token = req.cookies["refreshToken"];
+
+    jwt.verify(
+      token,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+        if (err) {
+          // invalid token error
+          res.status(500).send(err);
+        }
+
+        // remove refresh token from database
+        try {
+          await db.User.findByIdAndUpdate(decoded.id, {
+            $unset: { refreshToken: "" },
+          }).exec();
+
+          // clear successful
+          res.redirect("/");
+        } catch (err) {
+          // db error; unable to remove refresh token from database
+          res.status(500).send(err);
+        }
+      }
+    );
   });
 
   // ---------------------------  ACCESS TOKEN  ---------------------------
@@ -109,10 +124,6 @@ module.exports = (router, passport, db, jwt, tokens) => {
         return res.redirect("/login");
       }
     });
-  });
-
-  router.post("/test", (req, res) => {
-    res.redirect("/login");
   });
 
   // -------------  ISSUE NEW ACCESS TOKEN WITH REFRESH TOKEN  ------------
@@ -134,7 +145,7 @@ module.exports = (router, passport, db, jwt, tokens) => {
         // store refresh token in database
         await tokens.storeRefreshToken(db, user, refreshToken);
         tokens.sendRefreshToken(res, refreshToken);
-        
+
         // send access token and expiry date
         res.status(200).send(tokens.createAccessToken(user, jwt));
       } catch (err) {
