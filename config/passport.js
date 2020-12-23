@@ -9,8 +9,6 @@ module.exports = (
 ) => {
   const User = db.User;
 
-  // todo differentiate between different error messages (e.g. authError, dbError, validateError, jwtError)
-
   passport.use(
     "register",
     new localStrategy(
@@ -104,6 +102,7 @@ module.exports = (
       (jwt_payload, done) => {
         // jsonwebtoken verify callback
         // token is valid, check if user exists in db
+
         User.findById(jwt_payload.id)
           .then((user) => {
             if (!user) {
@@ -114,7 +113,7 @@ module.exports = (
               // user found but email does not match
               return done(null, false, { authError: "email" });
             }
-            // user found in db
+            // user found in db and email matches
             return done(null, user);
           })
           .catch((err) => {
@@ -122,6 +121,7 @@ module.exports = (
             done(err);
           });
       }
+
     )
   );
 

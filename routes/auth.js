@@ -96,7 +96,7 @@ module.exports = (router, passport, db, jwt, tokens) => {
       async (err, decoded) => {
         if (err) {
           // invalid token error
-          res.status(500).send(err);
+          return res.status(500).send(err);
         }
 
         // remove refresh token from database
@@ -113,17 +113,6 @@ module.exports = (router, passport, db, jwt, tokens) => {
         }
       }
     );
-  });
-
-  // ---------------------------  ACCESS TOKEN  ---------------------------
-  // todo this is an API route
-  router.post("/dashboard", (req, res) => {
-    passport.authenticate("jwtAccess", (err, user, info) => {
-      if (err) {
-        // invalid refresh token
-        return res.redirect("/login");
-      }
-    });
   });
 
   // -------------  ISSUE NEW ACCESS TOKEN WITH REFRESH TOKEN  ------------
