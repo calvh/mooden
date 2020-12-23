@@ -8,16 +8,17 @@
 $(async function () {
   // ---------------------------  ACCESS TOKEN  ---------------------------
 
-  const accessTokenClosure = () => {
+  const token = () => {
     let accessToken, accessTokenExpiry;
 
     const getToken = async () => {
       ({ accessToken, accessTokenExpiry } = await checkRefreshToken());
+      return { accessToken, accessTokenExpiry };
     };
 
     return {
-      getNew: async () => {
-        await getToken();
+      update: async () => {
+        return await getToken();
       },
 
       // use this function to access the access token from memory
@@ -43,7 +44,7 @@ $(async function () {
       const response = await fetch("/auth/refresh-token", opts);
 
       if (response.status === 200) {
-        // login success
+        // refresh token valid
         return await response.json();
       } else if (response.status === 302) {
         // auth failed (user not found/invalid token)
@@ -72,7 +73,7 @@ $(async function () {
 
       const response = await fetch("/auth/logout", opts);
 
-      // to support logging out from all windows
+      // to support logging out from all tabs
       window.localStorage.setItem("logout", Date.now());
 
       if (response.status === 200) {
@@ -88,6 +89,14 @@ $(async function () {
     }
   };
 
+  // to support logging out from all tabs
+  const syncLogout = (event) => {
+    if (event.key === "logout") {
+      console.log("logged out from storage!");
+      window.location.replace("/login");
+    }
+  };
+
   // --------------------------  CHART FUNCTIONS  -------------------------
   function addDataToChart(chart, data) {
     chart.data.datasets[0].data.push(data);
@@ -100,7 +109,7 @@ $(async function () {
       const opts = {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${jwt.value()}`,
+          Authorization: `Bearer ${jwt.value()}`,
           "Cache-Control": "no-cache",
         },
       };
@@ -148,10 +157,30 @@ $(async function () {
     }
   };
 
+  // --------------------------  SILENT REFRESH  --------------------------
+
+  const silentRefresh = async () => {
+    if (jwt) {
+      jwt = null;
+      jwt = token();
+      await jwt.update();
+      console.log(jwt.value());
+    } else {
+      jwt = token();
+      await jwt.update();
+    }
+  };
+
   // -------------------------------  INIT  -------------------------------
 
-  let jwt = accessTokenClosure();
-  await jwt.getNew(); // get token
+  let jwt; // store jwt in memory
+
+  silentRefresh();
+
+  let silentRefreshIntervalID = setInterval(silentRefresh, 60000); // update access token every 1 minute
+
+  // to support logging out from all tabs
+  window.addEventListener("storage", syncLogout);
 
   // ------------------------------  BUTTONS  -----------------------------
 
