@@ -80,12 +80,70 @@ $(async function () {
         window.location.replace(response.url);
       } else {
         // something went wrong with logout
-        // todo remove cookie manually?
         window.location.replace(response.url);
         throw new Error(response.statusText);
       }
     } catch (err) {
-      // todo remove cookie manually?
+      console.log(err);
+    }
+  };
+
+  // --------------------------  CHART FUNCTIONS  -------------------------
+  function addDataToChart(chart, data) {
+    chart.data.datasets[0].data.push(data);
+    chart.update();
+  }
+
+  // -----------------------------  GET DATA  -----------------------------
+  const getData = async () => {
+    try {
+      const opts = {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${jwt.value()}`,
+          "Cache-Control": "no-cache",
+        },
+      };
+
+      const response = await fetch("/api/data", opts);
+
+      if (response.status === 200) {
+        // get success
+        return await response.json();
+      } else {
+        // get failed
+        console.log(response.status);
+        throw new Error(response.statusText);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  // -----------------------------  POST DATA  ----------------------------
+
+  const postData = async (data) => {
+    try {
+      const opts = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `bearer ${jwt.value()}`,
+        },
+        body: JSON.stringify(data),
+      };
+
+      const response = await fetch("/api/data", opts);
+
+      if (response.status === 200) {
+        // post success
+        // re render chart
+        return response.body;
+      } else {
+        // post failed
+        console.log(response.status);
+        throw new Error(response.statusText);
+      }
+    } catch (err) {
       console.log(err);
     }
   };
@@ -102,17 +160,27 @@ $(async function () {
     $("#form-add-entry").submit();
   });
 
-  $(document).on("submit", "#form-add-entry", (e) => {
+  $(document).on("submit", "#form-add-entry", async (e) => {
     e.preventDefault();
 
-    function addData(chart, data) {
+    function addDataToChart(chart, data) {
       chart.data.datasets[0].data.push(data);
       moodChart.update();
     }
 
     const entryDate = moment($("#input-date").val(), "YYYY-MM-DD");
     const mood = parseInt($("#input-mood").val());
-    addData(moodChart, { x: entryDate, y: mood });
+
+    // send data to server
+    const result = await postData({ entryDate, mood });
+
+    addDataToChart(moodChart, { x: result.entryDate, y: result.mood });
+  });
+
+  $(document).on("click", "#btn-get-data", async (e) => {
+    e.preventDefault();
+    const data = await getData();
+    console.log(data);
   });
 
   $(document).on("click", "#btn-add-sample-data", (e) => {
@@ -131,11 +199,6 @@ $(async function () {
   $(document).on("submit", "#form-add-sample-data", (e) => {
     e.preventDefault();
 
-    function addData(chart, data) {
-      chart.data.datasets[0].data.push(data);
-      moodChart.update();
-    }
-
     let startDate = moment($("#input-sample-start-date").val(), "YYYY-MM-DD");
     const endDate = moment($("#input-sample-end-date").val(), "YYYY-MM-DD");
 
@@ -145,7 +208,7 @@ $(async function () {
 
     let i = 0;
     while (i < 30 || !startDate.isSame(endDate)) {
-      addData(moodChart, {
+      addDataToChart(moodChart, {
         x: startDate.clone(),
         y: Math.floor(Math.random() * 9 + 1),
       });
