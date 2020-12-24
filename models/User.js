@@ -4,10 +4,6 @@ module.exports = (db) => {
     {
       email: { type: String, required: true },
       password: { type: String, required: true },
-      datapoints: {
-        type: Schema.Types.ObjectId,
-        ref: "Datapoint",
-      },
       refreshToken: { type: String },
     },
     { timestamps: true }
