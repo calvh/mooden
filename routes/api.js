@@ -12,9 +12,10 @@ module.exports = (router, passport, jwt, db) => {
         return res.redirect("/login");
       }
 
-      db.User.findById(user.id)
-        .then((dbUser) => res.status(200).json(dbUser))
-        .catch((err) => res.status(500).send(err));
+      db.Datapoint.find({ user: user._id })
+      .then((dbDatapoints) => res.json(dbDatapoints))
+      .catch((err) => res.status(500).send(err));
+
     })(req, res, next);
   });
 
@@ -38,19 +39,10 @@ module.exports = (router, passport, jwt, db) => {
       }
       */
 
-      db.Datapoint.create(req.body)
-        .then((dbDatapoint) => {
-          return db.User.updateOne(
-            { _id: user._id },
-            {
-              $push: {
-                datapoints: dbDatapoint._id,
-              },
-            }
-          );
-        })
-        .then((dbUser) => res.json(dbUser))
+      db.Datapoint.create({ user: user._id, ...req.body })
+        .then((dbDatapoint) => res.json(dbDatapoint))
         .catch((err) => res.status(500).send(err));
+        
     })(req, res, next);
   });
 

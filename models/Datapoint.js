@@ -13,6 +13,10 @@ module.exports = (db) => {
         required: true,
         default: Date.now,
       },
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
     },
     { timestamps: true }
   );
