@@ -11,14 +11,19 @@ $(async function () {
   const token = () => {
     let accessToken, accessTokenExpiry;
 
-    const getToken = async () => {
-      ({ accessToken, accessTokenExpiry } = await checkRefreshToken());
-      return { accessToken, accessTokenExpiry };
+    const updateToken = async () => {
+      try {
+        ({ accessToken, accessTokenExpiry } = await getRefreshToken());
+        return { accessToken, accessTokenExpiry };
+      } catch (err) {
+        console.log(err);
+        throw err;
+      }
     };
 
     return {
       update: async () => {
-        return await getToken();
+        return await updateToken();
       },
 
       // use this function to access the access token from memory
@@ -30,7 +35,7 @@ $(async function () {
 
   // ---------------------------  REFRESH TOKEN  --------------------------
 
-  const checkRefreshToken = async () => {
+  const getRefreshToken = async () => {
     try {
       const opts = {
         method: "POST",
@@ -77,10 +82,11 @@ $(async function () {
       window.localStorage.setItem("logout", Date.now());
 
       if (response.status === 200) {
-        // logout success - redirect to dashboard
+        // logout success - redirect to homepage
         window.location.replace(response.url);
       } else {
         // something went wrong with logout
+        // logout success - redirect to homepage anyway
         window.location.replace(response.url);
         throw new Error(response.statusText);
       }
@@ -92,16 +98,15 @@ $(async function () {
   // to support logging out from all tabs
   const syncLogout = (event) => {
     if (event.key === "logout") {
-      console.log("logged out from storage!");
+      // logout detected via storage event
       window.location.replace("/login");
     }
   };
 
-  // --------------------------  CHART FUNCTIONS  -------------------------
-  function addDataToChart(chart, data) {
-    chart.data.datasets[0].data.push(data);
-    chart.update();
-  }
+  $(document).on("click", "#btn-logout", (e) => {
+    e.preventDefault();
+    logout();
+  });
 
   // -----------------------------  GET DATA  -----------------------------
   const getData = async () => {
@@ -117,11 +122,10 @@ $(async function () {
       const response = await fetch("/api/data", opts);
 
       if (response.status === 200) {
-        // get success
+        // GET success
         return await response.json();
       } else {
-        // get failed
-        console.log(response.status);
+        // GET failed
         throw new Error(response.statusText);
       }
     } catch (err) {
@@ -136,7 +140,7 @@ $(async function () {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          authorization: `bearer ${jwt.value()}`,
+          Authorization: `Bearer ${jwt.value()}`,
         },
         body: JSON.stringify(data),
       };
@@ -144,12 +148,36 @@ $(async function () {
       const response = await fetch("/api/data", opts);
 
       if (response.status === 200) {
-        // post success
-        // re render chart
-        return response.body;
+        // POST success
+        return await response.json();
       } else {
-        // post failed
-        console.log(response.status);
+        // POST failed
+        throw new Error(response.statusText);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // ----------------------------  DELETE DATA  ---------------------------
+
+  const deleteData = async () => {
+    try {
+      const opts = {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt.value()}`,
+        },
+      };
+
+      const response = await fetch("/api/data", opts);
+
+      if (response.status === 200) {
+        // PUT success
+        return await response.json();
+      } else {
+        // PUT failed
         throw new Error(response.statusText);
       }
     } catch (err) {
@@ -164,7 +192,6 @@ $(async function () {
       jwt = null;
       jwt = token();
       await jwt.update();
-      console.log(jwt.value());
     } else {
       jwt = token();
       await jwt.update();
@@ -175,12 +202,28 @@ $(async function () {
 
   let jwt; // store jwt in memory
 
-  silentRefresh();
+  await silentRefresh();
 
   let silentRefreshIntervalID = setInterval(silentRefresh, 60000); // update access token every 1 minute
 
   // to support logging out from all tabs
   window.addEventListener("storage", syncLogout);
+
+  // --------------------------  CHART FUNCTIONS  -------------------------
+  const addDataToChart = (chart, data) => {
+    chart.data.datasets[0].data.push(data);
+    chart.update();
+  };
+
+  const replaceChartData = (chart, data) => {
+    chart.data.datasets[0].data = data;
+    chart.update();
+  };
+
+  const clearChart = (chart) => {
+    chart.data.datasets[0].data = [];
+    chart.update();
+  };
 
   // ------------------------------  BUTTONS  -----------------------------
 
@@ -192,24 +235,48 @@ $(async function () {
   $(document).on("submit", "#form-add-entry", async (e) => {
     e.preventDefault();
 
-    function addDataToChart(chart, data) {
-      chart.data.datasets[0].data.push(data);
-      moodChart.update();
-    }
-
-    const entryDate = moment($("#input-date").val(), "YYYY-MM-DD");
+    const date = new Date($("#input-date").val());
     const mood = parseInt($("#input-mood").val());
 
     // send data to server
-    const result = await postData({ entryDate, mood });
+    const result = await postData({ date, mood });
 
-    addDataToChart(moodChart, { x: result.entryDate, y: result.mood });
+    if (result) {
+      addDataToChart(moodChart, { t: result.date, y: result.mood });
+    }
   });
 
-  $(document).on("click", "#btn-get-data", async (e) => {
+  $(document).on("click", "#btn-refresh", async (e) => {
+    // get new data and completely replace data in chart
     e.preventDefault();
-    const data = await getData();
-    console.log(data);
+
+    const serverData = await getData();
+
+    const data = serverData.map((datapoint) => {
+      return { t: datapoint.date, y: datapoint.mood };
+    });
+
+    replaceChartData(moodChart, data);
+  });
+
+  $(document).on("click", "#btn-delete-data", async (e) => {
+    e.preventDefault();
+
+    const deleteConfirmation = confirm(
+      "This will delete all your data. Are you sure?"
+    );
+    if (deleteConfirmation) {
+      const result = await deleteData();
+      alert(`${result.deletedCount} record(s) deleted.`);
+      moodChart.data.datasets[0].data = [];
+      moodChart.update();
+    }
+  });
+
+  $(document).on("click", "#btn-refresh-token", async (e) => {
+    e.preventDefault();
+    const result = await getRefreshToken();
+    console.log(result);
   });
 
   $(document).on("click", "#btn-add-sample-data", (e) => {
@@ -225,58 +292,47 @@ $(async function () {
     $("#form-add-sample-data").submit();
   });
 
-  $(document).on("submit", "#form-add-sample-data", (e) => {
+  $(document).on("submit", "#form-add-sample-data", async (e) => {
     e.preventDefault();
 
-    let startDate = moment($("#input-sample-start-date").val(), "YYYY-MM-DD");
-    const endDate = moment($("#input-sample-end-date").val(), "YYYY-MM-DD");
+    let startDate = new Date($("#input-sample-start-date").val());
+    const endDate = new Date($("#input-sample-end-date").val());
 
-    if (startDate.isSameOrAfter(endDate)) {
+    if (startDate >= endDate) {
+      alert("Start date must be before end date!");
       return;
     }
 
     let i = 0;
-    while (i < 30 || !startDate.isSame(endDate)) {
+    while (i < 15 || startDate.getTime() === endDate.getTime()) {
+      let mood = Math.floor(Math.random() * 9 + 1);
+      let date = new Date(startDate);
+
+      await postData({ date, mood });
+
       addDataToChart(moodChart, {
-        x: startDate.clone(),
-        y: Math.floor(Math.random() * 9 + 1),
+        t: date,
+        y: mood,
       });
 
-      startDate.add(1, "d");
+      startDate.setTime(startDate.getTime() + 86400000);
       i++;
     }
   });
 
-  $(document).on("click", "#btn-add-sample-data", (e) => {
-    e.preventDefault();
-  });
-
-  $(document).on("click", "#btn-clear-data", (e) => {
-    e.preventDefault();
-
-    moodChart.data.datasets[0].data = [];
-    moodChart.update();
-  });
-
-  $(document).on("click", "#btn-refresh-token", async (e) => {
-    e.preventDefault();
-    const result = await checkRefreshToken();
-    console.log(result);
-  });
-
-  $(document).on("click", "#btn-logout", (e) => {
-    e.preventDefault();
-    logout();
-  });
-
   // -------------------------------  CHART  ------------------------------
 
-  document.querySelector("#input-date").valueAsDate = new Date();
+  const serverData = await getData();
+
+  const datapoints = serverData.map((datapoint) => {
+    return { t: datapoint.date, y: datapoint.mood };
+  });
+
   const data = {
     datasets: [
       {
         label: "mood",
-        data: [],
+        data: datapoints,
         fill: false,
         borderColor: "#3e95cd",
       },
@@ -307,6 +363,9 @@ $(async function () {
       line: {
         tension: 0,
       },
+    },
+    legend: {
+      display: false,
     },
   };
 
